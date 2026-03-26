@@ -54,14 +54,21 @@ def dashboard():
     if "user" not in session:
         return redirect("/login")
 
-    elif request.method =="POST":
-        #prevzamemo text
-        text=request.form["note"]
-        #spravimo v tinyDB
-        users.insert({"username": username, "password": password, "note": ""})
+    username = session["user"]
+    #shranjevanje podatkov
+    if request.method == "POST":
+        text = request.form["note"]
 
+        users.update(
+            {"note": text},
+            User.username == username
+        )
 
-    return render_template("dashboard.html", user=session["user"])
+    # 👇 VEDNO preberi iz baze
+    user_data = users.get(User.username == username)
+    note = user_data.get("note", "")
+
+    return render_template("dashboard.html", user=username, note=note)
 
 
 app.run(debug=True)
