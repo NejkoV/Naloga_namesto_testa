@@ -1,15 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-    <title>DashBoard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
 </head>
 <body>
-   <form method="POST">
-    <h2>Write down your bullshit</h2>
-    <textarea name="note" rows="10" cols="50">{{ note }}</textarea>
-    <br>
-    <button type="submit">Save</button>
-</form>
+    <h2>Welcome, {{ user }}</h2>
+
+    <!-- Form to add a new note -->
+    <form method="POST">
+        <h3>Write down your note:</h3>
+        <input type="text" name="title" placeholder="Title" required><br>
+        <textarea name="note" rows="10" cols="50">{{ note }}</textarea><br>
+        <button type="submit">Save Note</button>
+    </form>
+
+    <h3>Your notes</h3>
+<ul>
+    {% for note in notes %}
+        <li>
+            <strong>{{ note.title }}</strong><br>
+            
+            <!-- Gumb za brisanje objave -->
+            <form action="{{ url_for('delete_note', note_id=note.id) }}" method="POST">
+                <button type="submit">Delete</button>
+            </form>
+            
+            <!-- Povezava za urejanje objave -->
+            <form action="{{ url_for('edit_note', note_id=note['id']) }}" method="POST">
+            <h2>Edit Your Note</h2>
+            <label for="note">Note:</label>
+            <textarea name="note" rows="10" cols="50" required>{{ note['note'] }}</textarea>
+            <br>
+            <button type="submit">Save Changes</button>
+            </form>
+        </li>
+    {% endfor %}
+</ul>
+
 </body>
 </html>

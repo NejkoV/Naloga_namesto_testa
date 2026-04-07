@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ user }} - Profil</title>
+</head>
+<body>
+<h2>Profil uporabnika {{ user }}</h2>
+
+{% for post in posts %}
+    <div class="post">
+        <p>{{ post.note }}</p>
+        {% if post.image %}
+            <img src="{{ url_for('static', filename='uploads/' + post.image) }}" width="300">
+        {% endif %}
+    </div>
+{% endfor %}
+
+<!-- Gumb za nazaj -->
+<button onclick="window.location.href='/omrezje'">Nazaj na omrežje</button>
+
+</body>
+</html>

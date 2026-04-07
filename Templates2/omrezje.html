@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omrežje</title>
+</head>
+<body>
+<h2>Dobrodošel, {{ user }}</h2>
+
+<!-- 1. Text area za tvojo objavo -->
+<form id="noteForm" method="POST" enctype="multipart/form-data">
+    <textarea id="noteText" name="note" rows="4" cols="50">{{ note }}</textarea><br>
+
+    <!-- Dodajanje slike -->
+    <input type="file" name="image"><br>
+    
+    <button type="submit">Shrani objavo</button>
+</form>
+
+<!-- Prikaz slike, če obstaja -->
+{% if user_data.posts and user_data.posts[0].image %}
+    <img src="{{ url_for('static', filename='uploads/' + user_data.posts[0].image) }}" width="300">
+{% endif %}
+
+<!-- 2. Gumb za nazaj na login -->
+<button onclick="window.location.href='/login'">Nazaj na Login</button>
+
+<hr>
+
+<!-- 3. Gumb za seznam uporabnikov -->
+<button onclick="loadUsers()">Prikaži uporabnike</button>
+
+<!-- 4. Seznam uporabnikov -->
+<ul id="userList"></ul>
+
+</body>
+
+<script>
+    // 👇 shrani svojo objavo (POST na /omrezje)
+    document.getElementById("noteForm").addEventListener("submit", function(e){
+        e.preventDefault();
+
+        const note = document.getElementById("noteText").value;
+
+        const formData = new FormData();
+        formData.append('note', note);
+        formData.append('image', document.querySelector('input[type="file"]').files[0]);
+
+        fetch("/omrezje", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.text())
+        .then(msg => {
+            console.log("Objava shranjena");
+            alert("Objava shranjena!");
+        });
+    });
+
+    // 👇 naloži seznam uporabnikov (GET /users)
+    function loadUsers() {
+        fetch("/users")
+            .then(res => res.json())
+            .then(users => {
+                const list = document.getElementById("userList");
+                list.innerHTML = "";
+
+                users.forEach(user => {
+                    const li = document.createElement("li");
+                    li.innerHTML = `<button onclick="loadProfile('${user}')">${user}</button>`;
+                    list.appendChild(li);
+                });
+            })
+            .catch(err => console.error(err));
+    }
+
+    // 👤 naloži profil uporabnika (GET /user/<username>)
+    function loadProfile(username) {
+        window.location.href = `/user/${username}`;  // Preusmeri na profil uporabnika
+    }
+
+    // 👇 naloži seznam uporabnikov ob odprtju strani
+    window.onload = function() {
+        loadUsers();
+    };
+</script>
+</html>
