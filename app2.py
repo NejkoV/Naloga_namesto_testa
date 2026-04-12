@@ -1,12 +1,14 @@
 from flask import Flask, render_template, request, redirect, session, jsonify
 from tinydb import TinyDB, Query
 from werkzeug.utils import secure_filename
-import os
+import os, uuid
 
 
 app = Flask(__name__, template_folder='Templates2')  # Določi mapo za predloge
-app.config['UPLOAD_FOLDER'] = 'static/uploads'  # Pot do mape za slike
 app.secret_key = "guner22"  # Nastavite vašo sejo (to je potrebno za prijavo uporabnika)
+
+app.config["UPLOAD_FOLDER"] = "static/uploads" # Pot do mape za slike
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 db = TinyDB("db.omrežje")
 users = db.table("users")
@@ -20,8 +22,6 @@ def home():
     return redirect("/login")
 
 
-
-User = Query()
 
 @app.route("/register", methods=["POST", "GET"])
 def register():
@@ -84,14 +84,17 @@ def homePage():
         # Preveri, ali uporabnik že ima objavo
         # Če ima objavo, jo posodobi, sicer ustvari novo objavo
         posts = user_data[0].get("posts", [])
-        if posts:  # Posodobi obstoječo objavo
-            posts[0]["note"] = text
-            posts[0]["image"] = filename if filename else None
-        else:  # Če objava še ne obstaja, ustvari novo
-            posts.append({
-                "note": text,
-                "image": filename if filename else None
-            })
+        posts = user_data[0].get("posts", [])
+
+        new_post = {
+            "id": str(uuid.uuid4()),
+            "note": text,
+            "image": filename,
+            "likes": 0,
+            "comments": []
+        }
+
+        posts.append(new_post)
 
         # Posodobi bazo z novo objavo
         users.update({
@@ -100,9 +103,9 @@ def homePage():
 
     # Pridobi obstoječo objavo (če obstaja)
     posts = user_data[0].get("posts", [])
-    note = posts[0]["note"] if posts else ""
+    
 
-    return render_template("omrezje.html", user=username, note=note, user_data=user_data[0])
+    return render_template("omrezje.html", user=username, user_data=user_data[0])
 
 @app.route("/users", methods=["GET"])
 def get_users():
@@ -124,6 +127,42 @@ def get_user(username):
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route("/like/<username>/<post_id>", methods=["POST"])
+def like_post(username, post_id):
+    user_data = users.search(User.username == username)
+    if not user_data:
+        return "user not found", 404
+
+    posts = user_data[0].get("posts", [])
+
+    for post in posts:
+        if post["id"] == post_id:
+            post["likes"] += 1
+            break
+
+    users.update({"posts": posts}, doc_ids=[user_data[0].doc_id])
+
+    return jsonify({"success": True})
+
+@app.route("/comment/<username>/<post_id>", methods=["POST"])
+def comment_post(username, post_id):
+    text = request.form.get("text")
+
+    user_data = users.search(User.username == username)
+    if not user_data:
+        return "user not found", 404
+
+    posts = user_data[0].get("posts", [])
+
+    for post in posts:
+        if post["id"] == post_id:
+            post["comments"].append(text)
+            break
+
+    users.update({"posts": posts}, doc_ids=[user_data[0].doc_id])
+
+    return jsonify({"success": True})
 
 app.run(debug=True)
 

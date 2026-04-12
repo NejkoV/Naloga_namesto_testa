@@ -8,13 +8,34 @@
 <body>
 <h2>Profil uporabnika {{ user }}</h2>
 
-{% for post in posts %}
-    <div class="post">
-        <p>{{ post.note }}</p>
-        {% if post.image %}
-            <img src="{{ url_for('static', filename='uploads/' + post.image) }}" width="300">
-        {% endif %}
-    </div>
+{% for post in posts|reverse %}
+<div class="post">
+
+    <p>{{ post.note }}</p>
+
+    {% if post.image %}
+        <img src="{{ url_for('static', filename='uploads/' + post.image) }}" width="300">
+    {% endif %}
+
+    <!-- ❤️ LIKE -->
+    <p>❤️ {{ post.likes }}</p>
+    <button onclick="likePost('{{ user }}','{{ post.id }}')">Like</button>
+
+    <!-- 💬 COMMENT -->
+    <form onsubmit="commentPost(event,'{{ user }}','{{ post.id }}')">
+        <input type="text" placeholder="Comment..." name="text">
+        <button type="submit">Send</button>
+    </form>
+
+    <!-- prikaz komentarjev -->
+    <ul>
+        {% for c in post.comments %}
+            <li>{{ c }}</li>
+        {% endfor %}
+    </ul>
+
+</div>
+<hr>
 {% endfor %}
 
 <!-- Gumb za nazaj -->
@@ -22,3 +43,29 @@
 
 </body>
 </html>
+
+<script>
+function likePost(username, postId) {
+    fetch(`/like/${username}/${postId}`, {
+        method: "POST"
+    }).then(() => {
+        location.reload();
+    });
+}
+
+function commentPost(event, username, postId) {
+    event.preventDefault();
+
+    const text = event.target.querySelector("input").value;
+
+    const formData = new FormData();
+    formData.append("text", text);
+
+    fetch(`/comment/${username}/${postId}`, {
+        method: "POST",
+        body: formData
+    }).then(() => {
+        location.reload();
+    });
+}
+</script>
