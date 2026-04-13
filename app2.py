@@ -130,19 +130,38 @@ def allowed_file(filename):
 
 @app.route("/like/<username>/<post_id>", methods=["POST"])
 def like_post(username, post_id):
-    user_data = users.search(User.username == username)
+    # 1. Poišči uporabnika, ki ima ta post (to je tisti, ki je lastnik objave)
+    # Trenutno iščeš po 'username'. Ali je to username lastnika objave?
+    user_data = users.search(User.username == username) 
     if not user_data:
         return "user not found", 404
 
+    current_user_id = session.get("user_id") 
     posts = user_data[0].get("posts", [])
+    post_found = False
 
     for post in posts:
         if post["id"] == post_id:
-            post["likes"] += 1
+            post_found = True
+            
+            # Preveri, če liked_by sploh obstaja
+            if "liked_by" not in post or post["liked_by"] is None:
+                post["liked_by"] = []
+
+            # Preveri, če je uporabnik že v seznamu
+            if current_user_id in post["liked_by"]:
+                return jsonify({"success": False, "message": "Že všečkano!"}), 400
+
+            # Povečaj število in dodaj ID
+            post["likes"] = post.get("likes", 0) + 1 # varno povečevanje
+            post["liked_by"].append(current_user_id)
             break
 
-    users.update({"posts": posts}, doc_ids=[user_data[0].doc_id])
+    if not post_found:
+        return "Post ni najden", 404
 
+    # Posodobi bazo
+    users.update({"posts": posts}, doc_ids=[user_data[0].doc_id])
     return jsonify({"success": True})
 
 @app.route("/comment/<username>/<post_id>", methods=["POST"])
