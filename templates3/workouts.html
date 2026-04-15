@@ -1,0 +1,16 @@
+<h2>📋 Seznam treningov</h2>
+
+<a href="/">⬅ Nazaj</a>
+
+<hr>
+
+{% for w in workouts %}
+  <div>
+    <a href="/workout/{{ w.id }}">
+      <b>{{ w.title }}</b>
+    </a>
+    - {{ w.duration }}
+
+    <a href="/delete/{{ w.id }}">❌</a>
+  </div>
+{% endfor %}

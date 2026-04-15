@@ -1,0 +1,57 @@
+<h2>🌦️ Vremenska napoved</h2>
+
+<a href="/">⬅ Nazaj</a>
+<p>Vnesi kraj za vremensko stanje</p>
+
+<hr>
+
+<input id="exerciseInput" placeholder="npr Kranj">
+<button onclick="getExercise()">Vremenska Napoved</button>
+
+<p id="result"></p>
+
+<script>
+function getExercise() {
+  const q = document.getElementById("exerciseInput").value;
+
+  if (!q) return;
+
+  document.getElementById("result").innerText = "Nalagam...";
+
+  fetch("/exercise_info?q=" + encodeURIComponent(q))
+    .then(res => res.json())
+    .then(e => {
+
+      if (!e || Object.keys(e).length === 0) {
+        document.getElementById("result").innerText = "Ni podatkov.";
+        return;
+      }
+
+      if (e.info) {
+        document.getElementById("result").innerText = e.info;
+        return;
+      }
+
+      let text = "";
+
+      text += "🌍 " + (e.name || "Unknown") + "\n";
+
+      if (e.temperature !== undefined) {
+        text += "🌡️ Temp: " + e.temperature + "°C\n";
+      }
+
+      if (e.windspeed !== undefined) {
+        text += "💨 Wind: " + e.windspeed + " km/h\n";
+      }
+
+      if (e.weathercode !== undefined) {
+        text += "☁️ Code: " + e.weathercode + "\n";
+      }
+
+      document.getElementById("result").innerText = text;
+    })
+    .catch(() => {
+      document.getElementById("result").innerText = "Napaka pri API klicu";
+    });
+}
+</script>

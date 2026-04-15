@@ -1,0 +1,11 @@
+<h2>{{ workout.title }}</h2>
+
+<p><b>Čas:</b> {{ workout.duration }}</p>
+
+<p><b>Vaje:</b></p>
+<p>{{ workout.details }}</p>
+
+<a href="/workouts">⬅ Nazaj</a>
+<a href="/edit/{{ workout.id }}">
+  <button>✏ Uredi</button>
+</a>

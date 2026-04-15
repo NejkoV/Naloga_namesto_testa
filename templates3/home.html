@@ -1,0 +1,37 @@
+<h2>🏊 Fitness tracker</h2>
+
+<h3>Dodaj trening</h3>
+
+<form method="POST" action="/add">
+  <input name="title" placeholder="npr plavanje">
+  <input name="duration" placeholder="2h">
+  <textarea name="details" placeholder="vaje..."></textarea>
+  <button>Dodaj</button>
+</form>
+
+<hr>
+
+<a href="/workouts">
+  <button>📋 Seznam treningov</button>
+</a>
+<a href="/exercise">
+  <button>🏋️ Vremenska napoved</button>
+</a>
+
+<hr>
+
+<hr>
+
+<h3>😂 Šala čaka Norisa</h3>
+<button onclick="getJoke()">Dobi šalo</button>
+<p id="joke"></p>
+
+<script>
+function getJoke() {
+  fetch("/joke")
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("joke").innerText = data.joke;
+    });
+}
+</script>
