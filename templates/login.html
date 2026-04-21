@@ -6,13 +6,13 @@
 <body>
     <h2>Prijavi se tu!</h2>
     <form action="/login" method="post">
-        <input type="text" name="username" placeholder="username">
-        <input type="text" name="password" placeholder="password">
+        <input type="text" name="username" placeholder="username" required>
+        <input type="password" name="password" placeholder="password" required>
         <br>
         <button type="submit">Prijavi se</button>
-
     </form>
     
-    <a href ="/register">registriraj se</a>
+    <a href="/register">registriraj se</a><br>
+    <a href="/forgot_password">Pozabil si geslo?</a> <!-- Povezava za pozabljeno geslo -->
 </body>
 </html>

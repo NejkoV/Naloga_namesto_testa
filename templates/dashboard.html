@@ -12,27 +12,28 @@
     <form method="POST">
         <h3>Write down your note:</h3>
         <input type="text" name="title" placeholder="Title" required><br>
-        <textarea name="note" rows="10" cols="50">{{ note }}</textarea><br>
+        <textarea name="note" rows="10" cols="50" placeholder="Write your note here"></textarea><br>
         <button type="submit">Save Note</button>
     </form>
 
     <h3>Your notes</h3>
-<ul>
-    {% for note in notes %}
-        <li>
-            <strong>{{ note.title }}</strong><br>
-            
-            <!-- Gumb za brisanje objave -->
-            <form action="{{ url_for('delete_note', note_id=note.id) }}" method="POST">
-                <button type="submit">Delete</button>
-            </form>
-            
-            <!-- Povezava za urejanje objave -->
-            <a href="{{ url_for('edit_note', note_id=note['id']) }}">Edit</a>
-            </form>
-        </li>
-    {% endfor %}
-</ul>
+    <ul>
+        {% for note in notes %}
+            <li>
+                <strong>{{ note.title }}</strong><br>
+                
+                <!-- Gumb za brisanje objave -->
+                <form action="{{ url_for('delete_note', note_id=note.id) }}" method="POST">
+                    <button type="submit">Delete</button>
+                </form>
+                
+                <!-- Povezava za urejanje objave -->
+                <a href="{{ url_for('edit_note', note_id=note['id']) }}">Edit</a>
+            </li>
+        {% endfor %}
+    </ul>
 
+    <!-- Logout Button -->
+    <a href="{{ url_for('logout') }}">Logout</a>
 </body>
 </html>

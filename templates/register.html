@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Register</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registracija</title>
 </head>
 <body>
     <h2>Registriraj se tu!</h2>
     <form action="/register" method="post">
-        <input type="text" name="username" placeholder="username">
-        <input type="text" name="password" placeholder="password">
-
+        <input type="text" name="username" placeholder="Uporabniško ime" required>
+        <input type="password" name="password" placeholder="Geslo" required>
+        <input type="email" name="email" placeholder="E-pošta" required>
+        
         <button type="submit">Registriraj se</button>
-
     </form>
     
-    <a href ="/login">Si že registriran</a>
+    <a href="/login">Si že registriran?</a>
 </body>
 </html>
