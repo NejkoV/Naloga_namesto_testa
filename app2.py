@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, session, jsonify
 from tinydb import TinyDB, Query
 from werkzeug.utils import secure_filename
 import os, uuid
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 app = Flask(__name__, template_folder='Templates2')  # Določi mapo za predloge
@@ -27,7 +28,7 @@ def home():
 def register():
     if request.method == "POST":
         username=request.form["username"]
-        password=request.form["password"]
+        password = generate_password_hash(request.form["password"])
 
         if users.search(User.username == username):
             return "Uporabnik že obstaja"
@@ -47,7 +48,7 @@ def login():
         user = users.get(User.username == username)
         #print(user)
 
-        if user and user["password"]== password:
+        if user and check_password_hash(user["password"], password):
             session["user"]= username
             return redirect("/omrezje")
 

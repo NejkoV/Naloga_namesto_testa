@@ -124,12 +124,12 @@ def workouts():
 @app.route("/exercise_info")
 def exercise_info():
     city = request.args.get("q")
+    date = request.args.get("date")
 
     if not city:
         return jsonify({"info": "no query"})
 
     try:
-        # 1. Geocoding
         geo = requests.get(
             f"https://geocoding-api.open-meteo.com/v1/search?name={city}",
             timeout=5
@@ -141,30 +141,54 @@ def exercise_info():
         lat = geo["results"][0]["latitude"]
         lon = geo["results"][0]["longitude"]
 
-        # 2. Weather
         weather = requests.get(
             "https://api.open-meteo.com/v1/forecast",
             params={
                 "latitude": lat,
                 "longitude": lon,
-                "current_weather": True
+                "daily": [
+                    "temperature_2m_max",
+                    "temperature_2m_min",
+                    "weathercode"
+                ],
+                "timezone": "auto",
+                "forecast_days": 7
             },
             timeout=5
         ).json()
+        print(weather)
 
-        w = weather.get("current_weather")
+        if "daily" not in weather:
+            return jsonify({"info": "API error - no daily data"})
 
-        if not w:
-            return jsonify({"info": "Ni vremenskih podatkov"})
+        daily = weather.get("daily", {})
+
+        if not daily or "time" not in daily:
+            return jsonify({"info": "No daily time data"})
+
+        if not daily:
+            return jsonify({"info": "Ni podatkov"})
+
+        # poišči index za datum
+        if date and "time" in daily:
+            if date in daily["time"]:
+                i = daily["time"].index(date)
+            else:
+                # fallback → vzemi zadnji dan v napovedi
+                i = len(daily["time"]) - 1
+        else:
+            i = 0
 
         return jsonify({
             "name": city,
-            "temperature": w.get("temperature"),
-            "windspeed": w.get("windspeed"),
-            "weathercode": w.get("weathercode")
+            "date": daily["time"][i],
+            "temp_max": daily["temperature_2m_max"][i],
+            "temp_min": daily["temperature_2m_min"][i],
+            "weathercode": daily["weathercode"][i],
+            "weather_desc": weather_emoji(daily["weathercode"][i])
         })
 
-    except Exception as e:
+    except Exception:
         return jsonify({"info": "API error"})
 
 
@@ -187,5 +211,22 @@ def workout_detail(id):
 
     return render_template("workout_detail.html", workout=workout)
 
+def weather_emoji(code):
+    if code == 0:
+        return "☀️ jasno"
+    elif code in [1, 2, 3]:
+        return "⛅ delno oblačno"
+    elif code in [45, 48]:
+        return "🌫️ megla"
+    elif code in [51, 53, 55, 61, 63, 65]:
+        return "🌧️ dež"
+    elif code in [71, 73, 75]:
+        return "❄️ sneg"
+    elif code in [80, 81, 82]:
+        return "🌦️ plohe"
+    elif code in [95, 96, 99]:
+        return "⛈️ nevihta"
+    else:
+        return "🌍 neznano vreme"
 
 app.run(debug=True)

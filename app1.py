@@ -5,6 +5,8 @@ import uuid
 import random
 import string
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
+
 
 # Ustvari Flask aplikacijo
 app = Flask(__name__)
@@ -13,7 +15,7 @@ app.secret_key = "skrivnost67"
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'your_email@gmail.com'  # Tvoj Gmail naslov
+app.config['MAIL_USERNAME'] = 'nejkodh@gmail.com'  # Tvoj Gmail naslov
 app.config['MAIL_PASSWORD'] = 'your_app_password'  # Uporabi App Password
 app.config['MAIL_DEFAULT_SENDER'] = 'your_email@gmail.com'
 
@@ -34,7 +36,7 @@ def home():
 def register():
     if request.method == "POST":
         username = request.form["username"]
-        password = request.form["password"]
+        password = generate_password_hash(request.form["password"])
         email = request.form["email"]  # Pridobi email iz obrazca
 
         # Preveri, če uporabnik že obstaja
@@ -57,7 +59,7 @@ def login():
         # Poišči uporabnika v bazi
         user = users.get(Query().username == username)
 
-        if user and user["password"] == password:
+        if user and check_password_hash(user["password"], password):
             session["user"] = username
             return redirect("/dashboard")
 
@@ -65,43 +67,47 @@ def login():
 
     return render_template("login.html")
 
-@app.route("/dashboard", methods=["POST", "GET"])
+@app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
     if "user" not in session:
         return redirect("/login")
 
     username = session["user"]
-    
-    # Preveri, če je uporabnik že v bazi
-    user_data = users.search(Query().username == username)
+    query = request.args.get("q", "")
+
+    user_data = users.get(Query().username == username)
     if not user_data:
         return redirect("/login")
 
-    user_data = user_data[0]
-    
-    # Shrani novo objavo (POST)
     if request.method == "POST":
         title = request.form["title"]
         note = request.form["note"]
 
-        # Generiraj edinstven ID za objavo
         new_note = {
-            "id": str(uuid.uuid4()),  # Ustvari unikaten ID
-            "title": title, 
+            "id": str(uuid.uuid4()),
+            "title": title,
             "note": note
         }
-        
-        # Posodobi ali ustvari novo objavo
-        if "notes" in user_data:
-            user_data["notes"].append(new_note)
-        else:
-            user_data["notes"] = [new_note]
 
-        users.update({"notes": user_data["notes"]}, doc_ids=[user_data.doc_id])
+        notes = user_data.get("notes", [])
+        notes.append(new_note)
 
-    # Prikaži seznam vseh objav
+        users.update({"notes": notes}, doc_ids=[user_data.doc_id])
+
     notes = user_data.get("notes", [])
-    return render_template("dashboard.html", user=username, notes=notes)
+
+    if query:
+        notes = [
+            n for n in notes
+            if query.lower() in n["title"].lower()
+        ]
+
+    return render_template(
+        "dashboard.html",
+        user=username,
+        notes=notes,
+        query=query
+    )
 
 
 @app.route("/edit_note/<note_id>", methods=["GET", "POST"])
@@ -185,12 +191,19 @@ def forgot_password():
             users.update({"reset_token": reset_token}, doc_ids=[user.doc_id])
 
             # Pošlji povezavo za ponastavitev gesla uporabniku
-            reset_url = f"http://localhost:5000/reset_password/{reset_token}"  # Povezava za ponastavitev
-            msg = Message("Ponastavitev gesla",
-                          sender="your_email@example.com",  # Nastavi svoj email
-                          recipients=[email])
+            reset_url = f"http://localhost:5000/reset_password/{reset_token}"
+
+            msg = Message(
+            "Ponastavitev gesla",
+            sender=app.config['MAIL_USERNAME'],  # tvoj Gmail
+            recipients=[email]
+            )   
+
             msg.body = f"Klikni na naslednjo povezavo, da ponastaviš svoje geslo: {reset_url}"
+
             mail.send(msg)
+
+
 
             return "Povezava za ponastavitev gesla je bila poslana na tvojo e-pošto."
 
@@ -217,6 +230,23 @@ def reset_password(token):
 def logout():
     session.pop("user", None)  # Izbriši uporabniško sejo
     return redirect("/login")  # Preusmeri na login stran
+
+
+@app.route("/notes")
+def notes():
+    query = request.args.get("q", "")
+
+    user = users.get(Query().id == "1")  # prilagodi login sistem
+
+    notes = user["notes"]
+
+    if query:
+        notes = [
+            note for note in notes
+            if query.lower() in note["title"].lower()
+        ]
+
+    return render_template("notes.html", notes=notes, query=query)
 
 
 app.run(debug=True)

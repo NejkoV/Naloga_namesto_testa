@@ -16,6 +16,13 @@
         <button type="submit">Save Note</button>
     </form>
 
+
+    <form method="GET" action="">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search notes...">
+    <button type="submit">Search</button>
+    </form>
+ 
+
     <h3>Your notes</h3>
     <ul>
         {% for note in notes %}
