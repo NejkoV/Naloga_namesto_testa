@@ -36,7 +36,7 @@ def home():
 def register():
     if request.method == "POST":
         username = request.form["username"]
-        password = generate_password_hash(request.form["password"])
+        password = generate_password_hash(request.form["password"])#funkcija ki heshira geslo
         email = request.form["email"]  # Pridobi email iz obrazca
 
         # Preveri, če uporabnik že obstaja
@@ -59,7 +59,7 @@ def login():
         # Poišči uporabnika v bazi
         user = users.get(Query().username == username)
 
-        if user and check_password_hash(user["password"], password):
+        if user and check_password_hash(user["password"], password):#funkcija ki preverja heshirano geslo
             session["user"] = username
             return redirect("/dashboard")
 
