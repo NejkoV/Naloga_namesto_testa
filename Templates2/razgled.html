@@ -18,7 +18,7 @@
     {% endif %}
 
     <!-- ❤️ LIKE -->
-    <p>❤️ {{ post.likes }}</p>
+    <p>❤️ {{ post.liked_by|length }}</p>
     <button onclick="likePost('{{ user }}','{{ post.id }}')">Like</button>
 
     <!-- 💬 COMMENT -->
@@ -47,9 +47,10 @@
 <script>
 function likePost(username, postId) {
     fetch(`/like/${username}/${postId}`, {
-        method: "POST"
+        method: "POST",
+        credentials: "include"
     }).then(() => {
-        location.reload();
+        location.reload();   // 🔥 DODAJ TO
     });
 }
 
@@ -63,9 +64,10 @@ function commentPost(event, username, postId) {
 
     fetch(`/comment/${username}/${postId}`, {
         method: "POST",
-        body: formData
+        body: formData,
+        credentials: "include"
     }).then(() => {
-        location.reload();
+        location.reload(); // 🔥 to dodaš
     });
 }
 </script>

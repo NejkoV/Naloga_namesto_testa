@@ -28,7 +28,7 @@ def home():
 def register():
     if request.method == "POST":
         username=request.form["username"]
-        password = generate_password_hash(request.form["password"])
+        password = generate_password_hash(request.form["password"])#dodatek za heshiranje gesla
 
         if users.search(User.username == username):
             return "Uporabnik že obstaja"
@@ -48,7 +48,7 @@ def login():
         user = users.get(User.username == username)
         #print(user)
 
-        if user and check_password_hash(user["password"], password):
+        if user and check_password_hash(user["password"], password):#preveri heshirano geslo
             session["user"]= username
             return redirect("/omrezje")
 
@@ -131,39 +131,41 @@ def allowed_file(filename):
 
 @app.route("/like/<username>/<post_id>", methods=["POST"])
 def like_post(username, post_id):
-    # 1. Poišči uporabnika, ki ima ta post (to je tisti, ki je lastnik objave)
-    # Trenutno iščeš po 'username'. Ali je to username lastnika objave?
     user_data = users.search(User.username == username) 
     if not user_data:
         return "user not found", 404
 
-    current_user_id = session.get("user_id") 
+    current_user_id = session.get("user")
+
+    if not current_user_id:
+        return jsonify({"success": False}), 401
+
     posts = user_data[0].get("posts", [])
-    post_found = False
 
     for post in posts:
         if post["id"] == post_id:
-            post_found = True
-            
-            # Preveri, če liked_by sploh obstaja
+
             if "liked_by" not in post or post["liked_by"] is None:
                 post["liked_by"] = []
 
-            # Preveri, če je uporabnik že v seznamu
             if current_user_id in post["liked_by"]:
-                return jsonify({"success": False, "message": "Že všečkano!"}), 400
+                post["liked_by"].remove(current_user_id)
+            else:
+                post["liked_by"].append(current_user_id)
 
-            # Povečaj število in dodaj ID
-            post["likes"] = post.get("likes", 0) + 1 # varno povečevanje
-            post["liked_by"].append(current_user_id)
-            break
+            post["likes"] = len(post["liked_by"])
 
-    if not post_found:
-        return "Post ni najden", 404
+            print("LIKES:", post["likes"])
 
-    # Posodobi bazo
-    users.update({"posts": posts}, doc_ids=[user_data[0].doc_id])
-    return jsonify({"success": True})
+            users.update({"posts": posts}, doc_ids=[user_data[0].doc_id])
+
+            return jsonify({
+                "success": True,
+                "liked": current_user_id in post["liked_by"],
+                "likes": post["likes"]
+            })
+
+    return "Post ni najden", 404
 
 @app.route("/comment/<username>/<post_id>", methods=["POST"])
 def comment_post(username, post_id):
