@@ -15,43 +15,40 @@ function getExercise() {
   const q = document.getElementById("exerciseInput").value.trim();
   const date = document.getElementById("dateInput").value || "";
 
+  const result = document.getElementById("result");
+
   if (!q) {
-    document.getElementById("result").innerText = "Vnesi kraj.";
+    result.innerText = "Vnesi kraj.";
     return;
   }
 
-  document.getElementById("result").innerText = "Nalagam...";
+  // 🔥 FULL RESET
+  result.innerText = "Nalagam...";
 
   fetch(`/exercise_info?q=${encodeURIComponent(q)}&date=${encodeURIComponent(date)}&_=${Date.now()}`)
     .then(res => res.json())
     .then(e => {
 
-      if (!e || Object.keys(e).length === 0) {
-        document.getElementById("result").innerText = "Ni podatkov.";
-        return;
-      }
+      // 🔥 CLEAN START
+      result.innerText = "";
 
-      if (e.info) {
-        document.getElementById("result").innerText = e.info;
+      if (!e || e.error) {
+        result.innerText = e.error || "Ni podatkov";
         return;
       }
 
       let text = "";
+      text += "🌍 " + e.name + "\n";
+      text += "📅 " + e.date + "\n";
+      text += "🌡️ Max: " + e.temp_max + "°C\n";
+      text += "🌡️ Min: " + e.temp_min + "°C\n";
+      text += "☁️ " + e.weather_desc + "\n";
 
-      text += "🌍 " + (e.name || "Unknown") + "\n";
-
-      if (e.date) text += "📅 " + e.date + "\n";
-      if (e.temp_max !== undefined) text += "🌡️ Max: " + e.temp_max + "°C\n";
-      if (e.temp_min !== undefined) text += "🌡️ Min: " + e.temp_min + "°C\n";
-      if (e.windspeed !== undefined) text += "💨 Wind: " + e.windspeed + " km/h\n";
-      if (e.weathercode !== undefined) text += "☁️ Code: " + e.weathercode + "\n";
-      if (e.weather_desc !== undefined) text += "☁️ " + e.weather_desc + "\n";
-
-      document.getElementById("result").innerText = text;
+      result.innerText = text;
     })
-    .catch((err) => {
+    .catch(err => {
       console.log(err);
-      document.getElementById("result").innerText = "Napaka pri API klicu";
+      result.innerText = "Napaka pri API klicu";
     });
 }
 </script>

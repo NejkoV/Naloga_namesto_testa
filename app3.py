@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, jsonify
 import sqlite3, requests
 import os
+from urllib.parse import quote
+
 
 
 app = Flask(__name__, template_folder="templates3", static_folder="static3")
@@ -127,16 +129,17 @@ def exercise_info():
     date = request.args.get("date")
 
     if not city:
-        return jsonify({"info": "no query"})
+        return jsonify({"error": "no query"}), 400
 
     try:
         geo = requests.get(
-            f"https://geocoding-api.open-meteo.com/v1/search?name={city}",
+            f"https://geocoding-api.open-meteo.com/v1/search",
+            params={"name": city},
             timeout=5
         ).json()
 
         if not geo.get("results"):
-            return jsonify({"info": "Mesto ni najdeno"})
+            return jsonify({"error": "City not found"}), 404
 
         lat = geo["results"][0]["latitude"]
         lon = geo["results"][0]["longitude"]
@@ -146,50 +149,42 @@ def exercise_info():
             params={
                 "latitude": lat,
                 "longitude": lon,
-                "daily": [
-                    "temperature_2m_max",
-                    "temperature_2m_min",
-                    "weathercode"
-                ],
+                "daily": "temperature_2m_max,temperature_2m_min,weathercode",
                 "timezone": "auto",
                 "forecast_days": 7
             },
             timeout=5
         ).json()
-        print(weather)
 
-        if "daily" not in weather:
-            return jsonify({"info": "API error - no daily data"})
+        daily = weather.get("daily")
 
-        daily = weather.get("daily", {})
+        times = [t.split("T")[0] for t in daily.get("time", [])]
 
-        if not daily or "time" not in daily:
-            return jsonify({"info": "No daily time data"})
+        temps_max = daily.get("temperature_2m_max", [])
+        temps_min = daily.get("temperature_2m_min", [])
+        codes = daily.get("weathercode", [])
 
-        if not daily:
-            return jsonify({"info": "Ni podatkov"})
+        date = (date or "").split("T")[0]
 
-        # poišči index za datum
-        if date and "time" in daily:
-            if date in daily["time"]:
-                i = daily["time"].index(date)
-            else:
-                # fallback → vzemi zadnji dan v napovedi
-                i = len(daily["time"]) - 1
+        if not times:
+            return jsonify({"error": "No time data"}), 500
+
+        if date in times:
+            i = times.index(date)
         else:
-            i = 0
+            i = len(times) - 1
 
         return jsonify({
             "name": city,
-            "date": daily["time"][i],
-            "temp_max": daily["temperature_2m_max"][i],
-            "temp_min": daily["temperature_2m_min"][i],
-            "weathercode": daily["weathercode"][i],
-            "weather_desc": weather_emoji(daily["weathercode"][i])
+            "date": times[i],
+            "temp_max": temps_max[i],
+            "temp_min": temps_min[i],
+            "weathercode": codes[i],
+            "weather_desc": weather_emoji(codes[i])
         })
 
-    except Exception:
-        return jsonify({"info": "API error"})
+    except requests.RequestException as e:
+        return jsonify({"error": "API/network error", "details": str(e)}), 500
 
 
 @app.route("/exercise")
