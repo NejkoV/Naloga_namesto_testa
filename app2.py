@@ -3,10 +3,24 @@ from tinydb import TinyDB, Query
 from werkzeug.utils import secure_filename
 import os, uuid
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_mail import Mail, Message
+from datetime import datetime, timedelta
+import random, string
+from flask import url_for
+
 
 
 app = Flask(__name__, template_folder='Templates2')  # Določi mapo za predloge
 app.secret_key = "guner22"  # Nastavite vašo sejo (to je potrebno za prijavo uporabnika)
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'nejkodh@gmail.com'
+app.config['MAIL_PASSWORD'] = 'znaz megp qmjj omce'
+app.config['MAIL_DEFAULT_SENDER'] = 'tvojgmail@gmail.com'
+
+mail = Mail(app)
 
 app.config["UPLOAD_FOLDER"] = "static/uploads" # Pot do mape za slike
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
@@ -33,7 +47,14 @@ def register():
         if users.search(User.username == username):
             return "Uporabnik že obstaja"
         
-        users.insert({"username": username, "password": password, "note": ""})
+        email = request.form["email"]
+
+        users.insert({
+            "username": username,
+            "password": password,
+            "email": email,
+            "note": ""
+        })
         return redirect("/login")
 
     else:
@@ -185,6 +206,65 @@ def comment_post(username, post_id):
     users.update({"posts": posts}, doc_ids=[user_data[0].doc_id])
 
     return jsonify({"success": True})
+
+def generate_reset_token():
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+
+@app.route("/forgot_password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form["email"]
+
+        user = users.get(User.email == email)
+
+        if user:
+            reset_token = generate_reset_token()
+            expiry = (datetime.now() + timedelta(hours=1)).isoformat()
+
+            users.update({
+                "reset_token": reset_token,
+                "token_expiry": expiry
+            }, doc_ids=[user.doc_id])
+
+            reset_url = url_for("reset_password", token=reset_token, _external=True)
+
+            msg = Message(
+                "Ponastavitev gesla",
+                recipients=[email]
+            )
+
+            msg.body = f"Klikni link za reset gesla: {reset_url}"
+            mail.send(msg)
+
+            return "Email poslan!"
+
+        return "Uporabnik ne obstaja"
+
+    return render_template("forgot_password.html")
+
+@app.route("/reset_password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    user = users.get(User.reset_token == token)
+
+    if not user:
+        return "Neveljaven token"
+
+    if datetime.now() > datetime.fromisoformat(user["token_expiry"]):
+        return "Link je potekel"
+
+    if request.method == "POST":
+        new_password = request.form["password"]
+        hashed = generate_password_hash(new_password)
+
+        users.update({
+            "password": hashed,
+            "reset_token": None,
+            "token_expiry": None
+        }, doc_ids=[user.doc_id])
+
+        return redirect("/login")
+
+    return render_template("reset_password.html")
 
 app.run(debug=True)
 

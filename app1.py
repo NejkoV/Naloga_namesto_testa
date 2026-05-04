@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, jsonify
+from flask import Flask, render_template, request, redirect, session, jsonify, url_for
 from flask_mail import Mail, Message
 from tinydb import TinyDB, Query
 import uuid
@@ -6,6 +6,7 @@ import random
 import string
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
+
 
 
 # Ustvari Flask aplikacijo
@@ -16,7 +17,7 @@ app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = 'nejkodh@gmail.com'  # Tvoj Gmail naslov
-app.config['MAIL_PASSWORD'] = 'your_app_password'  # Uporabi App Password
+app.config['MAIL_PASSWORD'] = 'znaz megp qmjj omce'  # Uporabi App Password
 app.config['MAIL_DEFAULT_SENDER'] = 'your_email@gmail.com'
 
 mail = Mail(app)
@@ -179,49 +180,59 @@ def generate_reset_token():
 def forgot_password():
     if request.method == "POST":
         email = request.form["email"]
-        
-        # Preveri, ali uporabnik obstaja z tem emailom
-        user = users.get(Query().email == email)  # Uporabi Query() namesto User()
-        
+        user = users.get(Query().email == email)
+
         if user:
-            # Generiraj edinstven ponastavitveni token
             reset_token = generate_reset_token()
+            expiry = datetime.now() + timedelta(hours=1)
 
-            # Shrani token v bazo
-            users.update({"reset_token": reset_token}, doc_ids=[user.doc_id])
+            users.update({
+                "reset_token": reset_token,
+                "token_expiry": expiry
+            }, doc_ids=[user.doc_id])
 
-            # Pošlji povezavo za ponastavitev gesla uporabniku
-            reset_url = f"http://localhost:5000/reset_password/{reset_token}"
+            reset_url = url_for(
+                'reset_password',
+                token=reset_token,
+                _external=True
+            )
 
             msg = Message(
-            "Ponastavitev gesla",
-            sender=app.config['MAIL_USERNAME'],  # tvoj Gmail
-            recipients=[email]
-            )   
+                "Ponastavitev gesla",
+                sender=app.config['MAIL_USERNAME'],
+                recipients=[email]
+            )
 
-            msg.body = f"Klikni na naslednjo povezavo, da ponastaviš svoje geslo: {reset_url}"
-
+            msg.body = f"Klikni tukaj za ponastavitev gesla: {reset_url}"
             mail.send(msg)
 
+            return "Email poslan!"
 
-
-            return "Povezava za ponastavitev gesla je bila poslana na tvojo e-pošto."
-
-        return "Email ni povezan z nobenim uporabnikom."
+        return "Email ni najden."
 
     return render_template("forgot_password.html")
 
 @app.route("/reset_password/<token>", methods=["GET", "POST"])
 def reset_password(token):
-    user_data = users.search(User.reset_token == token)  # Poiščemo uporabnika s tem tokenom
+    User = Query()
+    user_data = users.search(User.reset_token == token)
 
-    if not user_data or datetime.now() > user_data[0]["token_expiry"]:
-        return "Povezava za ponastavitev gesla ni več veljavna."
+    if not user_data:
+        return "Neveljaven token."
+
+    if datetime.now() > user_data[0]["token_expiry"]:
+        return "Povezava je potekla."
 
     if request.method == "POST":
         new_password = request.form["new_password"]
-        # Posodobite geslo uporabnika
-        users.update({"password": new_password, "reset_token": None, "token_expiry": None}, doc_ids=[user_data[0].doc_id])
+        hashed_password = generate_password_hash(new_password)
+
+        users.update({
+            "password": hashed_password,
+            "reset_token": None,
+            "token_expiry": None
+        }, doc_ids=[user_data[0].doc_id])
+
         return redirect("/login")
 
     return render_template("reset_password.html")
