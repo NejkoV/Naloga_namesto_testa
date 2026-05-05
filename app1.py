@@ -187,8 +187,8 @@ def forgot_password():
             expiry = datetime.now() + timedelta(hours=1)
 
             users.update({
-                "reset_token": reset_token,
-                "token_expiry": expiry
+                "reset_token_created_at": datetime.now().isoformat(),
+                "token_expiry": expiry.isoformat()
             }, doc_ids=[user.doc_id])
 
             reset_url = url_for(
