@@ -247,7 +247,7 @@ def logout():
 def notes():
     query = request.args.get("q", "")
 
-    user = users.get(Query().id == "1")  # prilagodi login sistem
+    user = users.get(Query().id == "1")
 
     notes = user["notes"]
 
@@ -258,6 +258,5 @@ def notes():
         ]
 
     return render_template("notes.html", notes=notes, query=query)
-
 
 app.run(debug=True)
